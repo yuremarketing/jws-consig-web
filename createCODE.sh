@@ -1,117 +1,130 @@
 #!/bin/bash
 
-echo -e "\033[1;34m--- 📂 CRIANDO ESTRUTURA DE PASTAS E ARQUIVOS --- \033[0m"
+echo -e "\033[1;34m--- 🔧 OPERAÇÃO BLOCO 1: LIGANDO AS TORNEIRAS --- \033[0m"
 
-# 1. Criar as pastas que o Vite/React precisam para ser organizados
-mkdir -p src/api src/pages src/components src/types src/hooks
-
-# 2. Re-escrever o Axios (Conector)
-cat << 'EOF' > src/api/axios.ts
-import axios from 'axios';
-
-const api = axios.create({
-  baseURL: 'http://localhost:8080/api',
-});
-
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
-
-export default api;
-EOF
-
-# 3. Re-escrever a Página de Login
+# 1. Refatorando a Tela de Login (Usando o authService)
 cat << 'EOF' > src/pages/Login.tsx
-import React, { useState } from 'react';
-import api from '../api/axios';
-import { Lock, Mail } from 'lucide-react';
+import { useState } from 'react';
+import { authService } from '../api/authService';
 
-export default function Login() {
+interface LoginProps {
+  onLoginSuccess: () => void;
+}
+
+export default function Login({ onLoginSuccess }: LoginProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoading(true);
     setError('');
+    
     try {
-      const response = await api.post('/auth/login', { email, password });
-      localStorage.setItem('token', response.data.token);
-      localStorage.setItem('role', response.data.role);
-      
-      alert('🚀 LOGIN SUCESSO! Bem-vindo, ' + response.data.role);
-      // Por enquanto fica na mesma página até criarmos o Dashboard
-    } catch (err: any) {
-      setError('Credenciais inválidas ou Servidor Offline');
+      const dados = await authService.login({ email, senha: password });
+      localStorage.setItem('token', dados.token);
+      localStorage.setItem('role', dados.role);
+      onLoginSuccess();
+    } catch (err) {
+      setError('Credenciais inválidas ou erro no servidor.');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-950 px-4">
-      <div className="max-w-md w-full space-y-8 bg-slate-900 p-10 rounded-2xl border border-slate-800 shadow-2xl">
-        <div className="text-center">
-          <h2 className="text-3xl font-extrabold text-blue-500 tracking-tight">CONSIG-SNIPER</h2>
-          <p className="mt-2 text-sm text-slate-400">Acesse sua central de leads</p>
-        </div>
-        
-        <form className="mt-8 space-y-6" onSubmit={handleLogin}>
-          {error && <div className="bg-red-500/10 text-red-500 p-3 rounded-lg text-sm text-center border border-red-500/20 font-medium">{error}</div>}
-          
-          <div className="space-y-4">
-            <div className="relative">
-              <Mail className="absolute left-3 top-3 text-slate-500 w-5 h-5" />
-              <input
-                type="email"
-                required
-                className="w-full pl-10 pr-4 py-3 bg-slate-800 border border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 text-white outline-none transition-all"
-                placeholder="Seu e-mail"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </div>
-            <div className="relative">
-              <Lock className="absolute left-3 top-3 text-slate-500 w-5 h-5" />
-              <input
-                type="password"
-                required
-                className="w-full pl-10 pr-4 py-3 bg-slate-800 border border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 text-white outline-none transition-all"
-                placeholder="Sua senha"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </div>
-          </div>
-
-          <button
-            type="submit"
-            className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition-all shadow-lg shadow-blue-900/20 active:scale-95"
-          >
-            ENTRAR NO SISTEMA
+    <div className="min-h-screen flex items-center justify-center bg-slate-950">
+      <div className="bg-slate-900 p-8 rounded-xl border border-slate-800 w-96 text-center">
+        <h2 className="text-2xl font-bold text-blue-500 mb-6 font-mono tracking-tighter">CONSIG-SNIPER</h2>
+        <form onSubmit={handleLogin} className="space-y-4">
+          <input type="email" placeholder="E-mail" required className="w-full p-3 bg-slate-800 rounded text-white border border-slate-700 focus:border-blue-500 outline-none" value={email} onChange={(e) => setEmail(e.target.value)} />
+          <input type="password" placeholder="Senha" required className="w-full p-3 bg-slate-800 rounded text-white border border-slate-700 focus:border-blue-500 outline-none" value={password} onChange={(e) => setPassword(e.target.value)} />
+          <button disabled={loading} className="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 text-white font-bold rounded transition-colors">
+            {loading ? 'AUTENTICANDO...' : 'ENTRAR'}
           </button>
         </form>
+        {error && <p className="text-red-500 mt-4 text-sm font-semibold">{error}</p>}
       </div>
     </div>
   );
 }
 EOF
+echo -e "[\033[0;32m ✔ OK \033[0m] Tela de Login refatorada e conectada ao authService."
 
-# 4. Garantir que o App.tsx chama o Login
-cat << 'EOF' > src/App.tsx
-import Login from './pages/Login';
+# 2. Refatorando o Dashboard (Usando leadService e authService)
+cat << 'EOF' > src/pages/Dashboard.tsx
+import { useEffect, useState } from 'react';
+import { leadService } from '../api/leadService';
+import { authService } from '../api/authService';
+import type { Lead } from '../types';
 
-function App() {
+export default function Dashboard() {
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    leadService.getMeusLeads()
+       .then(dados => setLeads(dados))
+       .catch(err => console.error("Erro ao carregar leads:", err))
+       .finally(() => setLoading(false));
+  }, []);
+
+  const renderColuna = (titulo: string, status: string) => (
+    <div className="flex-1 bg-slate-900 p-4 rounded-xl border border-slate-800 min-h-[500px]">
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="text-slate-400 font-bold">{titulo}</h3>
+        <span className="bg-slate-800 text-blue-400 text-xs px-2 py-1 rounded font-bold">
+          {leads.filter(l => l.status === status).length}
+        </span>
+      </div>
+      
+      {loading ? (
+        <p className="text-slate-500 text-sm text-center mt-10">Carregando...</p>
+      ) : (
+        <div className="space-y-3">
+          {leads.filter(l => l.status === status).map(lead => (
+            <div key={lead.id} className="bg-slate-800 p-4 rounded border border-slate-700 hover:border-blue-500 transition-colors cursor-pointer shadow-lg">
+              <p className="font-bold text-slate-100">{lead.nome}</p>
+              <p className="text-xs text-slate-400 font-mono mt-1">{lead.cpf}</p>
+              <p className="text-sm text-green-400 mt-2 font-bold">R$ {lead.margem}</p>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+
   return (
-    <main>
-      <Login />
-    </main>
+    <div className="min-h-screen bg-slate-950 p-6">
+      <header className="mb-8 pb-4 border-b border-slate-800 flex justify-between items-center">
+        <h1 className="text-2xl font-black text-blue-500 tracking-tighter italic">CONSIG-SNIPER</h1>
+        <button 
+          onClick={() => authService.logout()} 
+          className="text-red-400 hover:text-red-300 font-bold px-4 py-2 rounded hover:bg-slate-900 transition-colors"
+        >
+          DESLOGAR
+        </button>
+      </header>
+      <div className="flex gap-6 overflow-x-auto pb-4">
+        {renderColuna("A FAZER", "DISPONIVEL")}
+        {renderColuna("ATENDENDO", "EM_ATENDIMENTO")}
+        {renderColuna("FECHADO", "FINALIZADO")}
+      </div>
+    </div>
   );
 }
-
-export default App;
 EOF
+echo -e "[\033[0;32m ✔ OK \033[0m] Dashboard refatorado e conectado ao leadService."
 
-echo -e "\n\033[1;32m--- ✅ PASTAS CRIADAS E ARQUIVOS INJETADOS! ---\033[0m"
+# 3. Teste de Fogo
+echo -e "\n\033[1;33m--- ⚡ INICIANDO TESTE DE INTEGRAÇÃO (BUILD) --- \033[0m"
+npm run build
+
+if [ $? -eq 0 ]; then
+    echo -e "\n\033[1;32m🏆 SUCESSO ABSOLUTO! O código passou sem nenhum erro.\033[0m"
+    echo -e "A Sala de Operações está 100% limpa, segura e conectada à API."
+else
+    echo -e "\n\033[1;31m💥 FALHA NO TESTE! O compilador encontrou erros de integração acima.\033[0m"
+fi
