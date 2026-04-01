@@ -27,9 +27,9 @@ const Dashboard = () => {
       });
       
       if (novaPagina === 0) {
-        setLeads(data.content);
+        setLeads(data.content || data);
       } else {
-        setLeads((prev) => [...prev, ...data.content]);
+        setLeads((prev) => [...prev, ...(data.content || data)]);
       }
       
       setHasMore(!data.last);

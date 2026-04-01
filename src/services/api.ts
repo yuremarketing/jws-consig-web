@@ -8,7 +8,7 @@ api.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
   if (token) {
     // Pega o token puro, sem aspas de JSON.stringify
-    config.headers.Authorization = `Bearer ${token}`;
+    config.headers.Authorization = `Bearer ${token.replace(/["']+/g, '')}`;
   }
   return config;
 });
