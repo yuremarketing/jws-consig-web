@@ -1,14 +1,31 @@
 import api from './axios';
-import type { Lead, StatusLead } from '../types';
 
 export const leadService = {
-  getMeusLeads: async (): Promise<Lead[]> => {
-    const response = await api.get<Lead[]>('/leads/meus-leads');
-    return response.data;
+  // Busca leads para o Admin (Trata paginação do Spring Boot)
+  listarLeads: async (filters = {}) => {
+    const response = await api.get('/leads', { params: filters });
+    return response.data.content || []; 
+  },
+
+  // Busca leads específicos do consultor logado
+  getMeusLeads: async () => {
+    const response = await api.get('/leads/meus');
+    return response.data.content || [];
   },
   
-  updateStatus: async (id: number, status: StatusLead): Promise<Lead> => {
-    const response = await api.put<Lead>(`/leads/${id}/status`, { status });
+  // Lista consultores para o Select da tabela
+  listarConsultores: async () => {
+    const response = await api.get('/api/usuarios/consultores'); 
     return response.data;
+  },
+
+  // Atribuição em massa ou individual
+  atribuirLeads: async (leadIds: number[], consultorId: number) => {
+    return await api.post('/leads/atribuir', { leadIds, consultorId });
+  },
+
+  // Atualização de status (ex: Liberar lead)
+  atualizarStatus: async (id: number, status: string) => {
+    return await api.put(`/leads/${id}/status`, { status });
   }
 };

@@ -4,7 +4,7 @@ import { LeadFilter } from '../components/leads/LeadFilter';
 import { LeadTable } from '../components/leads/LeadTable';
 
 export const AdminDashboard = () => {
-  const [leads, setLeads] = useState([]);
+  const [leads, setLeads] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
   const carregarLeads = async (f = {}) => {

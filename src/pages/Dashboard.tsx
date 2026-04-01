@@ -1,86 +1,112 @@
-import { useEffect, useState, useCallback } from 'react';
-import { LeadUpload } from '../components/leads/LeadUpload';
-import { LeadFilter } from '../components/leads/LeadFilter';
+import { useState } from 'react';
 import { LeadTable } from '../components/leads/LeadTable';
+import { LeadFilter } from '../components/leads/LeadFilter';
+import { LeadUpload } from '../components/leads/LeadUpload';
+import { UserManagement } from '../components/admin/UserManagement';
 import { leadService } from '../services/leadService';
+import { useEffect } from 'react';
 
-export default function Dashboard() {
-  const [leads, setLeads] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [mensagem, setMensagem] = useState('');
+const Dashboard = () => {
+  const [leads, setLeads] = useState([]);
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [filtros, setFiltros] = useState({ orgao: [], margem: '' });
+  
+  // ESTADO DE NAVEGAÇÃO: 'leads' ou 'users'
+  const [activeTab, setActiveTab] = useState('leads');
 
-  // isAppend diz se devemos juntar com o que já tem na tela (scroll) ou substituir tudo (busca nova)
-  const carregarLeads = useCallback(async (filtros = {}, pageNum = 0, isAppend = false) => {
+  const carregarLeads = async (novaPagina = 0, novosFiltros = filtros) => {
+    if (loading) return;
     setLoading(true);
     try {
-      if (!leadService || typeof leadService.listarTodos !== "function") return;
-      // Pede de 50 em 50, conforme combinado
-      const data = await leadService.listarTodos({ ...filtros, page: pageNum.toString(), size: "50" });
-      const novosLeads = data.content || data;
-
-      if (isAppend) {
-        // Junta os novos leads no final da lista atual, prevenindo IDs duplicados
-        setLeads(prev => {
-          const existentes = new Set(prev.map(l => l.id));
-          const filtrados = novosLeads.filter((l: any) => !existentes.has(l.id));
-          return [...prev, ...filtrados];
-        });
+      const data = await leadService.listarTodos({ 
+        page: novaPagina, 
+        size: 50, 
+        ...novosFiltros 
+      });
+      
+      if (novaPagina === 0) {
+        setLeads(data.content);
       } else {
-        setLeads(novosLeads);
+        setLeads((prev) => [...prev, ...data.content]);
       }
-
-      setHasMore(!data.last && novosLeads.length > 0); // Se for a última página, hasMore vira false
-      setPage(pageNum);
+      
+      setHasMore(!data.last);
+      setPage(novaPagina);
     } catch (err) {
       console.error("Erro ao carregar leads:", err);
     } finally {
       setLoading(false);
     }
-  }, []);
+  };
 
   useEffect(() => {
-    carregarLeads({}, 0, false);
-  }, [carregarLeads]);
+    if (activeTab === 'leads') carregarLeads(0, filtros);
+  }, [activeTab]);
 
-  const handleLoadMore = () => {
-    if (!loading && hasMore) {
-      carregarLeads({}, page + 1, true);
-    }
+  const handleFiltrar = (novosFiltros: any) => {
+    setFiltros(novosFiltros);
+    carregarLeads(0, novosFiltros);
   };
 
   return (
-    <div style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto', fontFamily: 'Arial, sans-serif' }}>
-      <header style={{ borderBottom: '2px solid #555', marginBottom: '20px', paddingBottom: '10px' }}>
-        <h1 style={{ margin: 0, color: '#fff' }}>🎯 Painel de Gestão Sniper</h1>
-        <p style={{ color: '#aaa' }}>Bem-vindo, Administrador. Aqui você controla a entrada e distribuição de leads.</p>
-      </header>
+    <div style={{ padding: '20px', maxWidth: '1400px', margin: '0 auto' }}>
       
-      {mensagem && <div style={{ padding: '10px', background: '#d1ecf1', color: '#0c5460', borderRadius: '4px', marginBottom: '15px' }}>{mensagem}</div>}
-      
-      <LeadUpload onSuccess={(msg) => { setMensagem(msg); carregarLeads({}, 0, false); }} />
-      <LeadFilter onFilter={(filtros) => carregarLeads(filtros, 0, false)} />
+      {/* MENU DE NAVEGAÇÃO SNIPER */}
+      <div style={{ 
+        display: 'flex', 
+        gap: '20px', 
+        marginBottom: '30px', 
+        borderBottom: '1px solid #333',
+        paddingBottom: '10px' 
+      }}>
+        <button 
+          onClick={() => setActiveTab('leads')}
+          style={{
+            background: 'none', border: 'none', color: activeTab === 'leads' ? '#007bff' : '#888',
+            fontWeight: 'bold', cursor: 'pointer', fontSize: '16px',
+            borderBottom: activeTab === 'leads' ? '2px solid #007bff' : 'none',
+            padding: '10px'
+          }}
+        >
+          🎯 Gestão de Leads
+        </button>
+        <button 
+          onClick={() => setActiveTab('users')}
+          style={{
+            background: 'none', border: 'none', color: activeTab === 'users' ? '#007bff' : '#888',
+            fontWeight: 'bold', cursor: 'pointer', fontSize: '16px',
+            borderBottom: activeTab === 'users' ? '2px solid #007bff' : 'none',
+            padding: '10px'
+          }}
+        >
+          👥 Gestão de Equipe
+        </button>
+      </div>
 
-      <LeadTable 
-        leads={leads} 
-        onRefresh={() => carregarLeads({}, 0, false)} 
-        onLoadMore={handleLoadMore}
-        hasMore={hasMore}
-        loading={loading}
-      />
+      {/* RENDERIZAÇÃO CONDICIONAL */}
+      {activeTab === 'leads' ? (
+        <>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '20px' }}>
+            <LeadFilter onFilter={handleFiltrar} />
+            <LeadUpload onUploadSuccess={() => carregarLeads(0)} />
+          </div>
+          
+          <LeadTable 
+            leads={leads} 
+            onRefresh={() => carregarLeads(0)} 
+            onLoadMore={() => carregarLeads(page + 1)}
+            hasMore={hasMore}
+            loading={loading}
+          />
+        </>
+      ) : (
+        <UserManagement />
+      )}
       
-      {/* Indicador visual de carregamento no final da tabela */}
-      {loading && page > 0 && (
-        <div style={{ textAlign: 'center', padding: '20px', color: '#888' }}>
-          ⏳ Carregando mais leads...
-        </div>
-      )}
-      {!hasMore && leads.length > 0 && (
-        <div style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
-          🏁 Fim da lista. Todos os leads foram carregados.
-        </div>
-      )}
     </div>
   );
-}
+};
+
+export default Dashboard;
