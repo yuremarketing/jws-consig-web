@@ -91,7 +91,7 @@ export const LeadTable = ({ leads, onRefresh, onLoadMore, hasMore, loading }: Pr
         <strong style={{ color: '#fff' }}>Ação em massa:</strong>
         <select value={consultorIdGlobal} onChange={e => setConsultorIdGlobal(e.target.value)} style={{ padding: '8px', borderRadius: '4px', background: '#000', color: '#fff', border: '1px solid #444' }}>
           <option key="empty" value="">Selecionar Consultor...</option>
-          {consultores.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
+          {consultores.map((c, index) => <option key={c.id || `consultor-${index}`} value={c.id || ""}>{c.nome}</option>)}
         </select>
         <button 
           onClick={handleAtribuirEmMassa} 
@@ -159,7 +159,7 @@ export const LeadTable = ({ leads, onRefresh, onLoadMore, hasMore, loading }: Pr
                   {!estaAtribuido ? (
                      <select onChange={(e) => handleAtribuicaoIndividual(lead.id, e.target.value)} value="" style={{ padding: '6px', borderRadius: '4px', background: '#222', color: '#fff', border: '1px solid #444', fontSize: '12px', cursor: 'pointer' }}>
                         <option key="empty-atrib" value="" disabled>Atribuir...</option>
-                        {consultores.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
+                        {consultores.map((c, index) => <option key={c.id || `consultor-${index}`} value={c.id || ""}>{c.nome}</option>)}
                      </select>
                   ) : (
                      <button onClick={() => handleTornarDisponivel(lead.id)} style={{ padding: '6px 12px', fontSize: '11px', background: '#991b1b', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>

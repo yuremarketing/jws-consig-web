@@ -32,7 +32,7 @@ const Dashboard = () => {
         setLeads((prev) => [...prev, ...(data.content || data)]);
       }
       
-      setHasMore(!data.last);
+      setHasMore(data.content !== undefined ? !data.last : false);
       setPage(novaPagina);
     } catch (err) {
       console.error("Erro ao carregar leads:", err);
