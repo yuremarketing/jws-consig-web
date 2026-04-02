@@ -14,7 +14,6 @@ export const LeadFilter = ({ onFilter }: Props) => {
     const carregarOrgaos = async () => {
       try {
         const lista: string[] = await leadService.listarOrgaos();
-        // FILTRO SNIPER: Remove tudo que for apenas número
         const apenasNomes = lista.filter(o => isNaN(Number(o)));
         setOrgaosDisponiveis(apenasNomes);
       } catch (err) { console.error("Erro ao carregar órgãos:", err); }
@@ -27,12 +26,14 @@ export const LeadFilter = ({ onFilter }: Props) => {
       ? orgaosSelecionados.filter(o => o !== nome)
       : [...orgaosSelecionados, nome];
     setOrgaosSelecionados(novos);
-    onFilter({ orgao: novos, margem });
+    // 👇 AQUI ESTAVA O ERRO! CORRIGIDO PARA "orgaos" (plural)
+    onFilter({ orgaos: novos, margem });
   };
 
   const handleMargemChange = (val: string) => {
     setMargem(val);
-    onFilter({ orgao: orgaosSelecionados, margem: val });
+    // 👇 AQUI TAMBÉM! CORRIGIDO PARA "orgaos" (plural)
+    onFilter({ orgaos: orgaosSelecionados, margem: val });
   };
 
   const orgaosFiltrados = orgaosDisponiveis.filter(o => 

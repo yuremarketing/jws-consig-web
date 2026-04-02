@@ -1,4 +1,3 @@
-cat << 'EOF' > mapear_fluxo.sh
 #!/bin/bash
 
 echo "======================================================"
@@ -30,7 +29,3 @@ cat ../consig/src/main/java/com/jws/consig/service/LeadService.java 2>/dev/null 
 echo -e "\n\n>>>>>>>> LeadRepository.java <<<<<<<<"
 cat ../consig/src/main/java/com/jws/consig/repository/LeadRepository.java 2>/dev/null || echo "Não encontrado"
 
-EOF
-
-chmod +x mapear_fluxo.sh
-./mapear_fluxo.sh

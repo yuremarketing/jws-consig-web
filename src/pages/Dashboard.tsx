@@ -20,7 +20,7 @@ const Dashboard = () => {
     if (loading) return;
     setLoading(true);
     try {
-      const data = await leadService.listarTodos({ 
+      const data = await leadService.listarLeads({ 
         page: novaPagina, 
         size: 50, 
         ...novosFiltros 
