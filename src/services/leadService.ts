@@ -15,6 +15,7 @@ export const leadService = {
     const response = await api.get(`/admin/leads?${params.toString()}`);
     return response.data;
   },
+  listarMeusLeads: async () => (await api.get("/api/meus-leads")).data,
   listarConsultores: async () => (await api.get('/admin/consultores')).data,
   listarOrgaos: async () => (await api.get('/admin/leads/orgaos')).data,
   atribuirLeads: async (leadIds: number[], consultorId: number) => 

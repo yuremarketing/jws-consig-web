@@ -10,7 +10,7 @@ const ConsultorDashboard = () => {
     try {
       // Aqui vamos precisar de um endpoint no backend que retorne apenas os leads do consultor logado
       // Por enquanto, vamos simular ou usar a lista geral filtrada se o backend permitir
-      const data = await leadService.listarTodos({ page: 0, size: 50 });
+      const data = await leadService.listarMeusLeads();
       setLeads(data.content || []);
     } catch (err) {
       console.error("Erro ao carregar leads do consultor:", err);
